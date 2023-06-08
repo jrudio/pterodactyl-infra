@@ -1,0 +1,4 @@
+.terraform
+*.tfstate*
+planned
+main.tfvars
