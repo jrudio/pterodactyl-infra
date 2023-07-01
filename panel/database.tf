@@ -1,5 +1,5 @@
 resource "google_sql_database" "database" {
-  name     = "my-database"
+  name     = var.database_name
   instance = google_sql_database_instance.panel_db_instance.name
 }
 
@@ -8,11 +8,11 @@ resource "random_id" "db_name_suffix" {
 }
 
 resource "google_compute_global_address" "database_internal_ip_range" {
-  name          = "${var.db_instance_name}-internal-address-${random_id.db_name_suffix.hex}"
-  network       = google_compute_network.panel_network.id
-  address_type  = "INTERNAL"
-  address       = var.db_instance_ip
-  prefix_length = 24
+  name         = "${var.db_instance_name}-internal-address-${random_id.db_name_suffix.hex}"
+  network      = google_compute_network.panel_network.id
+  address_type = "INTERNAL"
+  # address       = var.db_instance_ip
+  prefix_length = 16
   purpose       = "VPC_PEERING"
 }
 
@@ -25,8 +25,9 @@ resource "google_service_networking_connection" "panel_private_vpc_connection" {
 
 # See versions at https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_database_instance#database_version
 resource "google_sql_database_instance" "panel_db_instance" {
+  provider         = google-beta
   name             = "${var.db_instance_name}-${random_id.db_name_suffix.hex}"
-  region           = var.zone
+  region           = var.region
   database_version = "MYSQL_8_0"
 
   depends_on = [google_service_networking_connection.panel_private_vpc_connection]
@@ -45,6 +46,7 @@ resource "google_sql_database_instance" "panel_db_instance" {
     }
 
     backup_configuration {
+      enabled            = true
       binary_log_enabled = true
     }
   }
