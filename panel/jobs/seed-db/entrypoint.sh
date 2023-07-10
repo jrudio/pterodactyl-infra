@@ -37,19 +37,27 @@ installDependencies() {
   composer install --no-dev --optimize-autoloader
 }
 
+echo "user: $PTERODACTYL_USER"
+
+PTERODACTYL_PASSWORD=$(gcloud secrets versions access latest --secret $PTERODACTYL_USER)
+
+
+echo $PTERODACTYL_PASSWORD
+exit
+
 # checkENVContents
 downloadENVFile
 installDependencies
 # checkENVContents
 
-# exit
 
 echo "running command: '$PTERODACTYL_CMD'"
 
 if [[ $PTERODACTYL_CMD == "seed" ]]; then
   echo "seeding database...";
   php artisan migrate --seed --force
-
+elif [[ $PTERODACTYL_CMD == "add_user" ]]; then
+  echo "creating new user..."
 
 
 # elif [[ $PTERODACTYL_CMD == "new_config" ]]; then
