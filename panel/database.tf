@@ -51,11 +51,11 @@ resource "google_sql_database_instance" "panel_db_instance" {
     }
   }
 
-  deletion_protection = "true"
+  deletion_protection = true
 }
 
 resource "google_sql_user" "users" {
-  name     = "justinjrudio@gmail.com"
+  name     = var.database_user_email
   instance = google_sql_database_instance.panel_db_instance.name
   type     = "CLOUD_IAM_USER"
 }
