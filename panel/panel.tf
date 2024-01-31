@@ -1,42 +1,35 @@
-resource "google_service_account" "db" {
-  account_id   = "${var.service_name}-db"
-  display_name = "${title(join(" ", split("-", var.service_name)))} Database"
+resource "google_service_account" "panel" {
+  account_id   = "${var.service_name}-panel"
+  display_name = "${title(join(" ", split("-", var.service_name)))} Panel"
 }
 
-resource "google_compute_address" "db" {
-  name         = local.db_name
-  description  = "Static internal IP address used for the database"
-  address_type = "INTERNAL"
-  subnetwork   = google_compute_subnetwork.panel_subnet.id
-}
-
-resource "google_compute_instance_group_manager" "db" {
+resource "google_compute_instance_group_manager" "panel" {
   provider = google-beta
-  name     = "${var.service_name}-db-igm"
+  name     = "${var.service_name}-igm"
 
-  base_instance_name = "${var.service_name}-db"
+  base_instance_name = "${var.service_name}-app"
   zone               = var.zone
 
   version {
-    instance_template = google_compute_instance_template.db.self_link_unique
+    instance_template = google_compute_instance_template.panel.self_link_unique
   }
 
   target_size = 1
 }
 
-resource "google_compute_instance_template" "db" {
-  name        = "${local.db_name}-template"
-  description = "Template for the database that stores Pterodactyl panel data"
+resource "google_compute_instance_template" "panel" {
+  name        = "${local.panel_name}-template"
+  description = "Template for the Pterodactyl panel"
 
-  tags = [local.firewall_rules.iap, local.db_name]
+  tags = [local.firewall_rules.iap, local.panel_name]
 
   labels = {
     environment = var.environment
     service     = var.service_name
   }
 
-  instance_description = "Database server for Pterodactyl"
-  machine_type         = var.db_machine_type
+  instance_description = "Front-end app server for Pterodactyl"
+  machine_type         = var.panel_machine_type
   can_ip_forward       = false
 
   scheduling {
@@ -47,7 +40,7 @@ resource "google_compute_instance_template" "db" {
   // Create a new boot disk from an image
   disk {
     source_image = data.google_compute_image.cos.self_link
-    auto_delete  = false
+    auto_delete  = true
     boot         = true
     // backup the disk every day
     # resource_policies = [google_compute_resource_policy.daily_backup.id]
@@ -63,16 +56,15 @@ resource "google_compute_instance_template" "db" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.panel_subnet.id
-    network_ip = google_compute_address.db.address
   }
 
   metadata = {
-    "gce-container-declaration" = module.gce-container-db.metadata_value
+    "gce-container-declaration" = module.gce-container-panel.metadata_value
   }
 
   service_account {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
-    email  = google_service_account.db.email
+    email  = google_service_account.panel.email
     scopes = ["cloud-platform"]
   }
 
@@ -81,25 +73,43 @@ resource "google_compute_instance_template" "db" {
   }
 }
 
-module "gce-container-db" {
+data "google_compute_image" "cos" {
+  family  = "cos-stable"
+  project = "cos-cloud"
+}
+
+module "gce-container-panel" {
   source  = "terraform-google-modules/container-vm/google"
   version = "~> 3.1"
 
   container = {
-    image = var.db_container_image
+    image = var.panel_container_image
     env = [
       {
-        name  = "MYSQL_DATABASE"
-        value = "panel"
+        name  = "APP_ENV"
+        value = var.environment
       },
       {
-        name  = "MYSQL_USER"
-        value = "pterodactyl"
+        name  = "APP_ENVIRONMENT_ONLY"
+        value = true
       },
       {
-        name  = "MARIADB_ROOT_PASSWORD"
+        name  = "DB_HOST"
+        value = google_compute_address.db.address
+      },
+      {
+        name  = "DB_PORT"
+        value = "3306"
+      },
+      {
+        name  = "DB_PASSWORD"
         value = "abc123" # change me
-      }
+      },
+      #       DB_PASSWORD: *db-password
+      # CACHE_DRIVER: "redis"
+      # SESSION_DRIVER: "redis"
+      # QUEUE_DRIVER: "redis"
+      # REDIS_HOST: "cache"
     ]
   }
 
@@ -142,5 +152,5 @@ module "gce-container-db" {
 # }
 
 locals {
-  db_name = "${var.service_name}-db"
+  panel_name = "${var.service_name}-panel"
 }

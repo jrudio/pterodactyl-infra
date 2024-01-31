@@ -31,22 +31,22 @@ resource "google_compute_firewall" "iap" {
 #   target_tags = ["pterodactyl-db"]
 # }
 
-# resource "google_compute_firewall" "mysql" {
-#   name        = local.firewall_rules["mysql"]
-#   network     = google_compute_network.panel_network.name
-#   description = "Allows applications to connect to the database's MySQL service"
+resource "google_compute_firewall" "mysql" {
+  name        = local.firewall_rules["mysql"]
+  network     = google_compute_network.panel_network.name
+  description = "Allows applications to connect to the database's MySQL service"
 
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["3306"]
-#   }
+  allow {
+    protocol = "tcp"
+    ports    = ["3306"]
+  }
 
-#   direction = "INGRESS"
+  direction = "INGRESS"
 
-#   source_ranges = ["10.0.1.0/24"]
+  source_ranges = [local.panel_subnet_range]
 
-#   target_tags = ["pterodactyl-db"]
-# }
+  target_tags = ["pterodactyl-db"]
+}
 
 locals {
   firewall_rules = tomap({
