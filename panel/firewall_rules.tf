@@ -11,47 +11,47 @@ resource "google_compute_firewall" "iap" {
   direction = "INGRESS"
 
   source_ranges = ["35.235.240.0/20"]
-  target_tags   = ["allow-iap"]
+  target_tags   = [local.firewall_rules["iap"]]
 }
 
-resource "google_compute_firewall" "redis" {
-  name        = local.firewall_rules["redis"]
-  network     = google_compute_network.panel_network.name
-  description = "Allows applications to connect to the database's redis service"
+# resource "google_compute_firewall" "redis" {
+#   name        = local.firewall_rules["redis"]
+#   network     = google_compute_network.panel_network.name
+#   description = "Allows applications to connect to the database's redis service"
 
-  allow {
-    protocol = "tcp"
-    ports    = ["6379"]
-  }
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["6379"]
+#   }
 
-  direction = "INGRESS"
+#   direction = "INGRESS"
 
-  source_ranges = ["10.0.1.0/24"]
+#   source_ranges = ["10.0.1.0/24"]
 
-  target_tags = ["pterodactyl-db"]
-}
+#   target_tags = ["pterodactyl-db"]
+# }
 
-resource "google_compute_firewall" "mysql" {
-  name        = local.firewall_rules["mysql"]
-  network     = google_compute_network.panel_network.name
-  description = "Allows applications to connect to the database's MySQL service"
+# resource "google_compute_firewall" "mysql" {
+#   name        = local.firewall_rules["mysql"]
+#   network     = google_compute_network.panel_network.name
+#   description = "Allows applications to connect to the database's MySQL service"
 
-  allow {
-    protocol = "tcp"
-    ports    = ["3306"]
-  }
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["3306"]
+#   }
 
-  direction = "INGRESS"
+#   direction = "INGRESS"
 
-  source_ranges = ["10.0.1.0/24"]
+#   source_ranges = ["10.0.1.0/24"]
 
-  target_tags = ["pterodactyl-db"]
-}
+#   target_tags = ["pterodactyl-db"]
+# }
 
 locals {
-  firewall_rules = map({
-    iap   = "allow-ssh-over-iap-pterodactyl"
-    redis = "allow-redis-ingress-pterodactyl"
-    mysql = "allow-mysql-ingress-pterodactyl"
+  firewall_rules = tomap({
+    iap   = "${var.service_name}-allow-iap"
+    redis = "${var.service_name}-allow-redis"
+    mysql = "${var.service_name}-allow-mysql"
   })
 }
