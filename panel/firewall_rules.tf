@@ -1,5 +1,5 @@
 resource "google_compute_firewall" "iap" {
-  name        = local.firewall_rules["iap"]
+  name        = local.firewall_rules.iap
   network     = google_compute_network.panel_network.name
   description = "Allows users to connect to an instance over IAP"
 
@@ -14,25 +14,25 @@ resource "google_compute_firewall" "iap" {
   target_tags   = [local.firewall_rules["iap"]]
 }
 
-# resource "google_compute_firewall" "redis" {
-#   name        = local.firewall_rules["redis"]
-#   network     = google_compute_network.panel_network.name
-#   description = "Allows applications to connect to the database's redis service"
+resource "google_compute_firewall" "redis" {
+  name        = local.firewall_rules.redis
+  network     = google_compute_network.panel_network.name
+  description = "Allows applications to connect to the database's redis service"
 
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["6379"]
-#   }
+  allow {
+    protocol = "tcp"
+    ports    = ["6379"]
+  }
 
-#   direction = "INGRESS"
+  direction = "INGRESS"
 
-#   source_ranges = ["10.0.1.0/24"]
+  source_ranges = [local.panel_subnet_range]
 
-#   target_tags = ["pterodactyl-db"]
-# }
+  target_tags = [local.cache_name]
+}
 
 resource "google_compute_firewall" "mysql" {
-  name        = local.firewall_rules["mysql"]
+  name        = local.firewall_rules.mysql
   network     = google_compute_network.panel_network.name
   description = "Allows applications to connect to the database's MySQL service"
 
@@ -45,7 +45,7 @@ resource "google_compute_firewall" "mysql" {
 
   source_ranges = [local.panel_subnet_range]
 
-  target_tags = ["pterodactyl-db"]
+  target_tags = [local.db_name]
 }
 
 locals {

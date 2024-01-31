@@ -22,10 +22,19 @@ variable "panel_machine_type" {
   # }
 }
 
-
 variable "db_machine_type" {
   type    = string
   default = "e2-small"
+
+  # validation {
+  #   condition     = contains(["e2-micro", "e2-small", "e2-medium"], var.machine_type)
+  #   error_message = "the machine type for the database must be one of: e2-micro, e2-small, or e2-medium"
+  # }
+}
+
+variable "cache_machine_type" {
+  type    = string
+  default = "e2-micro"
 
   # validation {
   #   condition     = contains(["e2-micro", "e2-small", "e2-medium"], var.machine_type)
@@ -49,6 +58,11 @@ variable "db_container_image" {
   description = "Container image name for the panel database. E.g. mariadb:lts"
 }
 
+variable "cache_container_image" {
+  type        = string
+  description = "Container image name for the panel cache. E.g. mariadb:lts"
+}
+
 variable "environment" {
   type        = string
   description = "The environment we are deploying to: dev, uat, pre-prod, prod"
@@ -64,4 +78,13 @@ variable "tf_bucket" {
     region = string
   })
   description = "google cloud storage bucket for terraform state"
+}
+
+variable "panel" {
+  type = object({
+    url   = string,
+    service_author = string
+    timezone = string
+  })
+  description = "Pterodactyl panel settings"
 }

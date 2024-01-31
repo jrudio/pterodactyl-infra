@@ -1,42 +1,42 @@
-resource "google_service_account" "db" {
-  account_id   = "${var.service_name}-db"
-  display_name = "${title(join(" ", split("-", var.service_name)))} Database"
+resource "google_service_account" "cache" {
+  account_id   = local.cache_name
+  display_name = "${title(join(" ", split("-", var.service_name)))} Cache"
 }
 
-resource "google_compute_address" "db" {
-  name         = local.db_name
-  description  = "Static internal IP address used for the database"
+resource "google_compute_address" "cache" {
+  name         = local.cache_name
+  description  = "Static internal IP address used for the cache"
   address_type = "INTERNAL"
   subnetwork   = google_compute_subnetwork.panel_subnet.id
 }
 
-resource "google_compute_instance_group_manager" "db" {
+resource "google_compute_instance_group_manager" "cache" {
   provider = google-beta
-  name     = "${var.service_name}-db-igm"
+  name     = "${local.cache_name}-igm"
 
-  base_instance_name = "${var.service_name}-db"
+  base_instance_name = local.cache_name
   zone               = var.zone
 
   version {
-    instance_template = google_compute_instance_template.db.self_link_unique
+    instance_template = google_compute_instance_template.cache.self_link_unique
   }
 
   target_size = 1
 }
 
-resource "google_compute_instance_template" "db" {
-  name        = "${local.db_name}-template"
-  description = "Template for the database that stores Pterodactyl panel data"
+resource "google_compute_instance_template" "cache" {
+  name        = "${local.cache_name}-template"
+  description = "Template for the Redis instance that caches Pterodactyl panel data"
 
-  tags = [local.firewall_rules.iap, local.db_name]
+  tags = [local.firewall_rules.iap, local.cache_name]
 
   labels = {
     environment = var.environment
     service     = var.service_name
   }
 
-  instance_description = "Database server for Pterodactyl"
-  machine_type         = var.db_machine_type
+  instance_description = "Database caching server for Pterodactyl"
+  machine_type         = var.cache_machine_type
   can_ip_forward       = false
 
   scheduling {
@@ -63,16 +63,16 @@ resource "google_compute_instance_template" "db" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.panel_subnet.id
-    network_ip = google_compute_address.db.address
+    network_ip = google_compute_address.cache.address
   }
 
   metadata = {
-    "gce-container-declaration" = module.gce-container-db.metadata_value
+    "gce-container-declaration" = module.gce-container-cache.metadata_value
   }
 
   service_account {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
-    email  = google_service_account.db.email
+    email  = google_service_account.cache.email
     scopes = ["cloud-platform"]
   }
 
@@ -81,29 +81,25 @@ resource "google_compute_instance_template" "db" {
   }
 }
 
-module "gce-container-db" {
+module "gce-container-cache" {
   source  = "terraform-google-modules/container-vm/google"
   version = "~> 3.1"
 
   container = {
-    image = var.db_container_image
+    image = var.cache_container_image
     env = [
-      {
-        name  = "MYSQL_DATABASE"
-        value = "panel"
-      },
-      {
-        name  = "MYSQL_USER"
-        value = "pterodactyl"
-      },
-      {
-        name  = "MYSQL_PASSWORD"
-        value = "abc123"
-      },
-      {
-        name  = "MYSQL_ROOT_PASSWORD"
-        value = "123abc"
-      }
+      # {
+      #   name  = "MYSQL_DATABASE"
+      #   value = "panel"
+      # },
+      # {
+      #   name  = "MYSQL_USER"
+      #   value = "pterodactyl"
+      # },
+      # {
+      #   name  = "MARIADB_ROOT_PASSWORD"
+      #   value = "abc123" # change me
+      # }
     ]
   }
 
@@ -146,5 +142,5 @@ module "gce-container-db" {
 # }
 
 locals {
-  db_name = "${var.service_name}-db"
+  cache_name = "${var.service_name}-cache"
 }

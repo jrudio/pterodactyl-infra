@@ -7,7 +7,7 @@ resource "google_compute_instance_group_manager" "panel" {
   provider = google-beta
   name     = "${var.service_name}-igm"
 
-  base_instance_name = "${var.service_name}-app"
+  base_instance_name = local.panel_name
   zone               = var.zone
 
   version {
@@ -84,14 +84,37 @@ module "gce-container-panel" {
 
   container = {
     image = var.panel_container_image
+    volumeMounts = [
+      {
+        mountPath = "/app/var/"
+        name      = "host-path"
+        readOnly  = false
+      }
+    ]
     env = [
       {
         name  = "APP_ENV"
-        value = var.environment
+        value = "prod"
+      },
+      {
+        name  = "APP_DEBUG"
+        value = false
       },
       {
         name  = "APP_ENVIRONMENT_ONLY"
-        value = true
+        value = false
+      },
+      {
+        name  = "APP_URL"
+        value = var.panel.url
+      },
+      {
+        name  = "APP_TIMEZONE"
+        value = var.panel.timezone
+      },
+      {
+        name  = "APP_SERVICE_AUTHOR"
+        value = var.panel.service_author
       },
       {
         name  = "DB_HOST"
@@ -103,15 +126,40 @@ module "gce-container-panel" {
       },
       {
         name  = "DB_PASSWORD"
-        value = "abc123" # change me
+        value = "abc123"
       },
-      #       DB_PASSWORD: *db-password
-      # CACHE_DRIVER: "redis"
-      # SESSION_DRIVER: "redis"
-      # QUEUE_DRIVER: "redis"
-      # REDIS_HOST: "cache"
+      {
+        name  = "DB_DATABASE"
+        value = "panel"
+      },
+      {
+        name  = "CACHE_DRIVER"
+        value = "redis"
+      },
+      {
+        name  = "SESSION_DRIVER"
+        value = "redis"
+      },
+      {
+        name  = "QUEUE_DRIVER"
+        value = "redis"
+      },
+      {
+        name  = "REDIS_HOST"
+        value = google_compute_address.cache.address
+      }
     ]
   }
+
+  volumes = [
+    {
+      name = "host-path"
+
+      hostPath = {
+        path = "/home/justinjrudio/var"
+      }
+    }
+  ]
 
   restart_policy = "Always"
 }
