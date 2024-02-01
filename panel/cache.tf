@@ -87,20 +87,6 @@ module "gce-container-cache" {
 
   container = {
     image = var.cache_container_image
-    env = [
-      # {
-      #   name  = "MYSQL_DATABASE"
-      #   value = "panel"
-      # },
-      # {
-      #   name  = "MYSQL_USER"
-      #   value = "pterodactyl"
-      # },
-      # {
-      #   name  = "MARIADB_ROOT_PASSWORD"
-      #   value = "abc123" # change me
-      # }
-    ]
   }
 
   restart_policy = "Always"

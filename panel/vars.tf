@@ -82,9 +82,14 @@ variable "tf_bucket" {
 
 variable "panel" {
   type = object({
-    url   = string,
+    url            = string,
     service_author = string
-    timezone = string
+    timezone       = string
   })
   description = "Pterodactyl panel settings"
+}
+
+variable "load_balancer_domain" {
+  type        = string
+  description = "Domain name for the load balancer"
 }

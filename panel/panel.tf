@@ -10,6 +10,11 @@ resource "google_compute_instance_group_manager" "panel" {
   base_instance_name = local.panel_name
   zone               = var.zone
 
+  named_port {
+    name = "http"
+    port = "80"
+  }
+
   version {
     instance_template = google_compute_instance_template.panel.self_link_unique
   }
