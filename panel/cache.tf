@@ -49,17 +49,7 @@ resource "google_compute_instance_template" "cache" {
     source_image = data.google_compute_image.cos.self_link
     auto_delete  = false
     boot         = true
-    // backup the disk every day
-    # resource_policies = [google_compute_resource_policy.daily_backup.id]
   }
-
-  // Use an existing disk resource
-  # disk {
-  #   // Instance Templates reference disks by name, not self link
-  #   source      = google_compute_disk.foobar.name
-  #   auto_delete = false
-  #   boot        = false
-  # }
 
   network_interface {
     subnetwork = google_compute_subnetwork.panel_subnet.id
@@ -102,28 +92,6 @@ module "gce-container-cache" {
 #   http_health_check {
 #     request_path = "/healthz"
 #     port         = "8080"
-#   }
-# }
-
-
-# resource "google_compute_disk" "foobar" {
-#   name  = "existing-disk"
-#   image = data.google_compute_image.my_image.self_link
-#   size  = 10
-#   type  = "pd-ssd"
-#   zone  = "us-central1-a"
-# }
-
-# resource "google_compute_resource_policy" "daily_backup" {
-#   name   = "every-day-4am"
-#   region = "us-central1"
-#   snapshot_schedule_policy {
-#     schedule {
-#       daily_schedule {
-#         days_in_cycle = 1
-#         start_time    = "04:00"
-#       }
-#     }
 #   }
 # }
 

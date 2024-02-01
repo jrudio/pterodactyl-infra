@@ -93,3 +93,13 @@ variable "load_balancer_domain" {
   type        = string
   description = "Domain name for the load balancer"
 }
+
+variable "database_data_disk_type" {
+  type        = string
+  description = "Type of disk used for the database. Defaults to pd-balanced"
+  default     = "pd-balanced"
+  validation {
+    condition     = contains(["pd-balanced", "pd-ssd", "pd-standard", "pd-extreme"], var.database_data_disk_type)
+    error_message = "value must be one of: pd-balanced, pd-ssd, pd-standard, pd-extreme"
+  }
+}

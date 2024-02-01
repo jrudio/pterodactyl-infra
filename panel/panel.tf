@@ -20,6 +20,11 @@ resource "google_compute_instance_group_manager" "panel" {
   }
 
   target_size = 1
+
+  auto_healing_policies {
+    health_check      = google_compute_health_check.http_autohealing.id
+    initial_delay_sec = 45
+  }
 }
 
 resource "google_compute_instance_template" "panel" {
@@ -50,14 +55,6 @@ resource "google_compute_instance_template" "panel" {
     // backup the disk every day
     # resource_policies = [google_compute_resource_policy.daily_backup.id]
   }
-
-  // Use an existing disk resource
-  # disk {
-  #   // Instance Templates reference disks by name, not self link
-  #   source      = google_compute_disk.foobar.name
-  #   auto_delete = false
-  #   boot        = false
-  # }
 
   network_interface {
     subnetwork = google_compute_subnetwork.panel_subnet.id
@@ -161,7 +158,7 @@ module "gce-container-panel" {
       name = "host-path"
 
       hostPath = {
-        path = "/home/justinjrudio/var"
+        path = "/home/app"
       }
     }
   ]
@@ -169,27 +166,18 @@ module "gce-container-panel" {
   restart_policy = "Always"
 }
 
-# resource "google_compute_health_check" "autohealing" {
-#   name                = "autohealing-health-check"
-#   check_interval_sec  = 5
-#   timeout_sec         = 5
-#   healthy_threshold   = 2
-#   unhealthy_threshold = 10 # 50 seconds
+resource "google_compute_health_check" "http_autohealing" {
+  name                = "autohealing-health-check"
+  check_interval_sec  = 5
+  timeout_sec         = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 10 # 50 seconds
 
-#   http_health_check {
-#     request_path = "/healthz"
-#     port         = "8080"
-#   }
-# }
+  tcp_health_check {
+    port = "80"
+  }
+}
 
-
-# resource "google_compute_disk" "foobar" {
-#   name  = "existing-disk"
-#   image = data.google_compute_image.my_image.self_link
-#   size  = 10
-#   type  = "pd-ssd"
-#   zone  = "us-central1-a"
-# }
 
 # resource "google_compute_resource_policy" "daily_backup" {
 #   name   = "every-day-4am"

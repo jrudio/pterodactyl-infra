@@ -48,6 +48,24 @@ resource "google_compute_firewall" "mysql" {
   target_tags = [local.db_name]
 }
 
+resource "google_compute_firewall" "health_check_probers" {
+  name        = "${var.service_name}-health-check"
+  network     = google_compute_network.panel_network.name
+  description = "Allows Google's health check probers to talk to instances on all ports"
+
+  allow {
+    protocol = "tcp"
+    # ports    = ["1-65535"]
+    ports = ["3306"]
+  }
+
+  direction = "INGRESS"
+
+  source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
+
+  # target_tags = [local.db_name]
+}
+
 locals {
   firewall_rules = tomap({
     iap   = "${var.service_name}-allow-iap"
