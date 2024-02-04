@@ -82,16 +82,21 @@ variable "tf_bucket" {
 
 variable "panel" {
   type = object({
-    url            = string,
-    service_author = string
-    timezone       = string
+    url                = string,
+    service_author     = string
+    timezone           = string
+    static_ip          = string
+    bucket_name_prefix = string
   })
-  description = "Pterodactyl panel settings"
+  description = "Pterodactyl panel settings. url sets APP_URL; it's what Pterodactyl expects to run under .\nUse static_ip if you already have a static ip provisioned and associated with your google cloud project"
 }
 
-variable "load_balancer_domain" {
-  type        = string
-  description = "Domain name for the load balancer"
+variable "db" {
+  type = object({
+    pterodactyl_password = string
+    root_password        = string
+  })
+  description = "required settings for MySQL"
 }
 
 variable "database_data_disk_type" {
@@ -102,4 +107,9 @@ variable "database_data_disk_type" {
     condition     = contains(["pd-balanced", "pd-ssd", "pd-standard", "pd-extreme"], var.database_data_disk_type)
     error_message = "value must be one of: pd-balanced, pd-ssd, pd-standard, pd-extreme"
   }
+}
+
+variable "database_data_disk_from_snapshot" {
+  type        = string
+  description = "Optional - Name of snapshot related to db data disk. Provide empty string if empty disk is desired"
 }

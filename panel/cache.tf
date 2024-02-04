@@ -47,7 +47,7 @@ resource "google_compute_instance_template" "cache" {
   // Create a new boot disk from an image
   disk {
     source_image = data.google_compute_image.cos.self_link
-    auto_delete  = false
+    auto_delete  = true
     boot         = true
   }
 

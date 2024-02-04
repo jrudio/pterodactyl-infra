@@ -1,7 +1,13 @@
-resource "google_compute_address" "panel_ip_address" {
-  name = "${local.panel_name}-address"
-
-  description = "Static IP for the panel database"
+resource "google_compute_global_address" "panel_ip_address" {
+  provider     = google-beta
+  name         = "${local.panel_name}-address"
+  description  = "Static IP for the panel database"
+  address_type = "EXTERNAL"
+  address      = var.panel.static_ip != "" ? var.panel.static_ip : null
+  labels = {
+    service = var.service_name
+    env     = var.environment
+  }
 }
 
 resource "google_compute_ssl_policy" "prod_ssl_policy" {
@@ -16,14 +22,19 @@ module "gce-lb-http" {
   project = data.google_project.default.project_id
   name    = var.service_name
 
-  target_tags       = [local.panel_name]
-  address           = google_compute_address.panel_ip_address.address
+  target_tags       = [local.panel_name, local.db_name]
+  create_address    = false
+  address           = google_compute_global_address.panel_ip_address.self_link
   firewall_networks = [google_compute_network.panel_network.self_link]
   https_redirect    = true
   ssl               = true
   managed_ssl_certificate_domains = [
-    var.load_balancer_domain
+    var.panel.url
   ]
+
+  labels = {
+    service = var.service_name
+  }
 
   ssl_policy = google_compute_ssl_policy.prod_ssl_policy.self_link
 
@@ -46,7 +57,6 @@ module "gce-lb-http" {
 
       groups = [
         {
-          # Each node pool instance group should be added to the backend.
           group = google_compute_instance_group_manager.panel.instance_group
         },
       ]

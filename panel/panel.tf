@@ -1,3 +1,30 @@
+locals {
+  panel_name               = "${var.service_name}-panel"
+  panel_health_check_delay = local.db_health_check_delay + 20 # wait for the db to come up
+  panel_init_script        = <<EOF
+    #!/bin/bash
+    BUCKET_NAME="${var.panel.bucket_name_prefix}-panel"
+    STARTUP_SCRIPT_LOG="/tmp/panel_init_script.log"
+
+    if [ -z "$BUCKET_NAME" ]; then
+      echo "env var BUCKET_NAME not set. Exiting." > STARTUP_SCRIPT_LOG
+      # exit 1
+    fi
+
+    docker pull gcr.io/google.com/cloudsdktool/google-cloud-cli:latest
+    docker run -v /tmp:/tmp gcr.io/google.com/cloudsdktool/google-cloud-cli gsutil cp gs://$BUCKET_NAME/.env /tmp
+    # docker run --rm -v /tmp:/tmp gcr.io/google.com/cloudsdktool/google-cloud-cli gsutil cp gs://$BUCKET_NAME/.env /tmp
+
+    # confirm .env file is present
+    if [ ! -f /tmp/.env ]; then
+      echo ".env file not copied to instance. Exiting." > STARTUP_SCRIPT_LOG
+      # exit 1
+    fi
+
+    echo "panel init finished." > STARTUP_SCRIPT_LOG
+  EOF
+}
+
 resource "google_service_account" "panel" {
   account_id   = "${var.service_name}-panel"
   display_name = "${title(join(" ", split("-", var.service_name)))} Panel"
@@ -5,7 +32,7 @@ resource "google_service_account" "panel" {
 
 resource "google_compute_instance_group_manager" "panel" {
   provider = google-beta
-  name     = "${var.service_name}-igm"
+  name     = "${var.service_name}-panel-igm"
 
   base_instance_name = local.panel_name
   zone               = var.zone
@@ -23,12 +50,12 @@ resource "google_compute_instance_group_manager" "panel" {
 
   auto_healing_policies {
     health_check      = google_compute_health_check.http_autohealing.id
-    initial_delay_sec = 45
+    initial_delay_sec = local.db_health_check_delay
   }
 }
 
 resource "google_compute_instance_template" "panel" {
-  name        = "${local.panel_name}-template"
+  name_prefix = "${local.panel_name}-"
   description = "Template for the Pterodactyl panel"
 
   tags = [local.firewall_rules.iap, local.panel_name]
@@ -62,7 +89,10 @@ resource "google_compute_instance_template" "panel" {
 
   metadata = {
     "gce-container-declaration" = module.gce-container-panel.metadata_value
+    "app-key-url"               = ""
   }
+
+  # metadata_startup_script = local.panel_init_script
 
   service_account {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
@@ -71,7 +101,7 @@ resource "google_compute_instance_template" "panel" {
   }
 
   lifecycle {
-    create_before_destroy = false
+    create_before_destroy = true
   }
 }
 
@@ -108,7 +138,7 @@ module "gce-container-panel" {
       },
       {
         name  = "APP_URL"
-        value = var.panel.url
+        value = "https://${var.panel.url}"
       },
       {
         name  = "APP_TIMEZONE"
@@ -128,7 +158,7 @@ module "gce-container-panel" {
       },
       {
         name  = "DB_PASSWORD"
-        value = "abc123"
+        value = var.db.pterodactyl_password
       },
       {
         name  = "DB_DATABASE"
@@ -191,7 +221,3 @@ resource "google_compute_health_check" "http_autohealing" {
 #     }
 #   }
 # }
-
-locals {
-  panel_name = "${var.service_name}-panel"
-}
