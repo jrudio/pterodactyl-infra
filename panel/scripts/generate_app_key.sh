@@ -64,36 +64,35 @@ GENERATE_APP_KEY_COMMAND="
 
   docker exec \$DOCKER_CONTAINER_ID php artisan key:generate --force -n
 
-  echo \"generated new APP_KEY\"
+  echo \"generated new APP_KEY. save this to your terraform.tfvars file under 'panel.app_key' and re-run 'terraform plan && terraform apply'\"
 
-  docker cp \$DOCKER_CONTAINER_ID:/app/.env /tmp &&
-    echo \"pulled the .env file from the container\"
+  docker exec \$DOCKER_CONTAINER_ID cat .env
 "
 
 gcloud compute ssh $instance_name --zone $instance_zone --verbosity error --tunnel-through-iap --command "$GENERATE_APP_KEY_COMMAND"
 
-FETCH_APP_KEY_COMMAND="
-  DOCKER_CONTAINER_ID=\$(docker ps --filter ancestor=$CONTAINER_IMAGE -q)
+# FETCH_APP_KEY_COMMAND="
+#   DOCKER_CONTAINER_ID=\$(docker ps --filter ancestor=$CONTAINER_IMAGE -q)
 
-  # if [ -z \"\$DOCKER_CONTAINER_ID\" ]; then
-  #   echo \"couldn't find a container with the '$CONTAINER_IMAGE' image. confirm the instance is running and docker is running\"
-  #   exit 1
-  # fi
+#   # if [ -z \"\$DOCKER_CONTAINER_ID\" ]; then
+#   #   echo \"couldn't find a container with the '$CONTAINER_IMAGE' image. confirm the instance is running and docker is running\"
+#   #   exit 1
+#   # fi
 
-  # echo \"running command on the '\$DOCKER_CONTAINER_ID' container...\"
+#   # echo \"running command on the '\$DOCKER_CONTAINER_ID' container...\"
 
-  docker exec \$DOCKER_CONTAINER_ID cat .env
-"
-APP_KEY=$(gcloud compute ssh $instance_name --zone $instance_zone --verbosity error --tunnel-through-iap --command "$FETCH_APP_KEY_COMMAND")
+#   docker exec \$DOCKER_CONTAINER_ID cat .env
+# "
+# APP_KEY=$(gcloud compute ssh $instance_name --zone $instance_zone --verbosity error --tunnel-through-iap --command "$FETCH_APP_KEY_COMMAND")
 
-echo $APP_KEY > .env && echo "saved APP_KEY to .env"
-# gcloud compute scp $instance_name:/tmp/.env $PWD --zone $instance_zone --verbosity error --tunnel-through-iap &&
-#   echo "saving new APP_KEY to gs://$BUCKET_NAME..." &&
-gsutil cp .env gs://$BUCKET_NAME &&
-rm .env
+# echo $APP_KEY > .env && echo "saved APP_KEY to .env"
+# # gcloud compute scp $instance_name:/tmp/.env $PWD --zone $instance_zone --verbosity error --tunnel-through-iap &&
+# #   echo "saving new APP_KEY to gs://$BUCKET_NAME..." &&
+# gsutil cp .env gs://$BUCKET_NAME &&
+# rm .env
 
-# sign the gcs url
-# gsutil signurl -d 1h gs://$BUCKET_NAME/.env
+# # sign the gcs url
+# # gsutil signurl -d 1h gs://$BUCKET_NAME/.env
 
 
 echo "finished."

@@ -1,7 +1,7 @@
 #! /bin/bash
 
-# This script sets up a rust server and the script itself is intended to be ran as root
-# The rust server will run as a non-root user
+# This script sets up the VM as a Wings server:
+#   https://pterodactyl.io/wings/1.0/installing.html
 #
 # target linux distro: Ubuntu 20.10
 

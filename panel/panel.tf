@@ -1,28 +1,6 @@
 locals {
   panel_name               = "${var.service_name}-panel"
   panel_health_check_delay = local.db_health_check_delay + 20 # wait for the db to come up
-  panel_init_script        = <<EOF
-    #!/bin/bash
-    BUCKET_NAME="${var.panel.bucket_name_prefix}-panel"
-    STARTUP_SCRIPT_LOG="/tmp/panel_init_script.log"
-
-    if [ -z "$BUCKET_NAME" ]; then
-      echo "env var BUCKET_NAME not set. Exiting." > STARTUP_SCRIPT_LOG
-      # exit 1
-    fi
-
-    docker pull gcr.io/google.com/cloudsdktool/google-cloud-cli:latest
-    docker run -v /tmp:/tmp gcr.io/google.com/cloudsdktool/google-cloud-cli gsutil cp gs://$BUCKET_NAME/.env /tmp
-    # docker run --rm -v /tmp:/tmp gcr.io/google.com/cloudsdktool/google-cloud-cli gsutil cp gs://$BUCKET_NAME/.env /tmp
-
-    # confirm .env file is present
-    if [ ! -f /tmp/.env ]; then
-      echo ".env file not copied to instance. Exiting." > STARTUP_SCRIPT_LOG
-      # exit 1
-    fi
-
-    echo "panel init finished." > STARTUP_SCRIPT_LOG
-  EOF
 }
 
 resource "google_service_account" "panel" {
@@ -46,7 +24,7 @@ resource "google_compute_instance_group_manager" "panel" {
     instance_template = google_compute_instance_template.panel.self_link_unique
   }
 
-  target_size = 1
+  target_size = var.panel.instance_count
 
   auto_healing_policies {
     health_check      = google_compute_health_check.http_autohealing.id
@@ -89,10 +67,7 @@ resource "google_compute_instance_template" "panel" {
 
   metadata = {
     "gce-container-declaration" = module.gce-container-panel.metadata_value
-    "app-key-url"               = ""
   }
-
-  # metadata_startup_script = local.panel_init_script
 
   service_account {
     # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
@@ -137,7 +112,8 @@ module "gce-container-panel" {
         value = false
       },
       {
-        name  = "APP_URL"
+        name = "APP_URL"
+        # value = "${var.panel.url}"
         value = "https://${var.panel.url}"
       },
       {
@@ -147,6 +123,10 @@ module "gce-container-panel" {
       {
         name  = "APP_SERVICE_AUTHOR"
         value = var.panel.service_author
+      },
+      {
+        name  = var.panel.app_key == "" ? "APP_NULL" : "APP_KEY"
+        value = var.panel.app_key == "" ? "abc123" : var.panel.app_key
       },
       {
         name  = "DB_HOST"

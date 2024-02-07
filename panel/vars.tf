@@ -82,11 +82,13 @@ variable "tf_bucket" {
 
 variable "panel" {
   type = object({
+    app_key            = string,
+    bucket_name_prefix = string
+    instance_count = number
     url                = string,
     service_author     = string
     timezone           = string
     static_ip          = string
-    bucket_name_prefix = string
   })
   description = "Pterodactyl panel settings. url sets APP_URL; it's what Pterodactyl expects to run under .\nUse static_ip if you already have a static ip provisioned and associated with your google cloud project"
 }
