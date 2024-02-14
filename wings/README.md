@@ -1,18 +1,4 @@
-# Host a Rust Dedicated Server on the Cloud
-
-## Supported Cloud
-
-- Google Cloud
-
-## Google Cloud
-
-### Machine Type
-
-For development purposes a machine type of e2-standard-2 (2 CPU, 8GB RAM) works well for potentially 50 people
-
-For production you likely want a Performance or Extreme persistent disk as opposed to a standard disk for optimal server performance. Standard or Balanced are fine for development.
-
-- https://cloud.google.com/compute/docs/disks/performance#disk_types
+# Provision a Pterodactyl Wing server
 
 ### Prerequisites
 
@@ -28,7 +14,9 @@ For production you likely want a Performance or Extreme persistent disk as oppos
 
 ### Deployment
 
-1. From this directory (./cloud) run `terraform init`
+1. Create `terraform.tfvars` and fill out the required variables listed in `vars.tf`
+
+`terraform init`
 
 2. `terraform plan`
 
@@ -38,8 +26,27 @@ For production you likely want a Performance or Extreme persistent disk as oppos
 
 ## Wing certificate
 
+To generate new certificates:
+
 Manually fetch certificates by setting hash in the DNS records
 
 sudo certbot -d test-node-1.dev.justinrudio.com --manual --preferred-challenges dns certonly
 
 https://pterodactyl.io/tutorials/creating_ssl_certificates.html#method-1:-certbot
+
+Save the generated certificates to the provisioned GCS bucket: gs://<project-id>-wing-certificates
+
+Bucket is versioned and has the following directory structure:
+
+gs:<project-id>-wing-certificates/<node-fqdn>/
+  README    cert1.pem  chain1.pem     fullchain1.pem  privkey1.pem
+
+Restoring certificates:
+
+Download the 4 files from the bucket and place them in the following directory:
+
+/etc/letsencrypt/archive/<node-fqdn>
+
+then symlink the files to:
+
+/etc/letsencrypt/live/<node-fqdn>
