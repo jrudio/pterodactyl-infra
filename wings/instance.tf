@@ -16,7 +16,7 @@ resource "google_compute_instance_from_template" "wing" {
 
   tags = [
     local.wing_template_tag,
-    each.value.open_ports[*].name
+    "${var.network_name}-${each.value.instance_name}-${each.value.zone}"
   ]
 
   boot_disk {

@@ -9,17 +9,15 @@ variable "project" {
 variable "game_servers" {
   type = list(
     object({
-      instance_name = string
-      region        = string
-      zone          = string
-      machine_type  = string
-      disk_type     = string
-      disk_size     = number
-      ports = object({
-        name  = string
-        types = list(string)
-        ports = list(string)
-      })
+      instance_name      = string
+      region             = string
+      zone               = string
+      machine_type       = string
+      disk_type          = string
+      disk_size          = number
+      allowed_ip_list    = list(string)
+      firewall_rules_udp = list(string)
+      firewall_rules_tcp = list(string)
     })
   )
 }

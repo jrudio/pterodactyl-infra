@@ -33,28 +33,24 @@ resource "google_compute_firewall" "ssh" {
 }
 
 resource "google_compute_firewall" "game_ports" {
-  for_each    = { for i, server in var.game_servers : i => server.open_ports }
-  name        = "wings-allow-${each.value.name}"
-  network     = google_compute_network.wing_network.name
-  description = "Allow access to game port"
+  for_each = { for i, server in var.game_servers : i => server }
+  name     = format("%s-%s-%s", var.network_name, each.value.instance_name, each.value.zone)
 
+  network       = var.network_name
+  description   = format("Firewall rules for '%s' Pterodactyl Wing", each.value.instance_name)
+  direction     = "INGRESS"
+  target_tags   = [format("%s-%s-%s", var.network_name, each.value.instance_name, each.value.zone)] # <network>-<instance-name>-<instance-zone>
+  source_ranges = each.value.allowed_ip_list
+
+  allow {
+    protocol = "tcp"
+    ports    = each.value.firewall_rules_tcp
+  }
   allow {
     protocol = "udp"
-    ports    = ["8211"]
+    ports    = each.value.firewall_rules_udp
   }
-
-  allow {
-    protocol = ""
-    ports = []
-  }
-
-  direction = "INGRESS"
-
-  source_ranges = ["0.0.0.0/0"]
-
-  target_tags = ["wing-fw-${var.game_servers[each.key].instance_name}-${var.game_servers[i].zone}"]
 }
-
 
 locals {
   firewall_rules = {
